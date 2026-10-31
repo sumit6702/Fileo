@@ -1,0 +1,17 @@
+## Build results
+[Bb]in/
+[Oo]bj/
+publish/
+installer/output/
+
+## Visual Studio & Rider
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## Temporary and logs
+*.log
+*.tmp
+TestResults/

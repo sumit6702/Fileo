@@ -1,0 +1,1064 @@
+<ui:FluentWindow x:Class="ImageBatchConverter.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        xmlns:models="clr-namespace:ImageBatchConverter.Models"
+        xmlns:local="clr-namespace:ImageBatchConverter"
+        mc:Ignorable="d"
+        Title="Fileo"
+        Icon="Assets/app.ico"
+        WindowBackdropType="Mica"
+        ExtendsContentIntoTitleBar="True"
+        WindowStartupLocation="CenterScreen"
+        MinHeight="520" MinWidth="880"
+        Height="660" Width="1080"
+        AllowDrop="True"
+        Drop="Window_Drop"
+        DragOver="Window_DragOver">
+
+    <Window.TaskbarItemInfo>
+        <TaskbarItemInfo ProgressState="{Binding TaskbarState}" ProgressValue="{Binding TaskbarProgress}" />
+    </Window.TaskbarItemInfo>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- TITLE BAR -->
+        <ui:TitleBar Grid.Row="0" Title="Fileo" Icon="PhotoAlbum24">
+            <ui:TitleBar.Header>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
+                    <!-- Preset Selector -->
+                    <TextBlock Text="Preset:" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <ComboBox ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}" DisplayMemberPath="Name" Width="180" Height="32" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <ui:Button Content="Apply" Command="{Binding ApplyPresetCommand}" CommandParameter="{Binding SelectedPreset}" Height="32" Margin="0,0,8,0" />
+                    <ui:Button Icon="{ui:SymbolIcon Save24}" Content="Save As Preset" Command="{Binding SaveCurrentAsPresetCommand}" Height="32" Margin="0,0,16,0" />
+
+                    <!-- Theme toggle -->
+                    <ui:Button Icon="{ui:SymbolIcon DarkTheme24}" ToolTip="Toggle Light / Dark Theme" Click="ToggleTheme_Click" Height="32" Width="36" />
+                </StackPanel>
+            </ui:TitleBar.Header>
+        </ui:TitleBar>
+
+        <!-- MAIN BODY CONTENT: TABS (CONVERTER / RESULTS) -->
+        <TabControl Grid.Row="1" Margin="12,4,12,4">
+            <!-- TAB 1: CONVERTER SETUP -->
+            <TabItem Header="Converter">
+                <Grid Margin="0,8,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="460" />
+                        <ColumnDefinition Width="10" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- LEFT COLUMN: INPUT, OUTPUT FORMAT, DESTINATION, BACKUP -->
+                    <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel Margin="0,0,8,0">
+                            <!-- CARD 1: INPUT SOURCE -->
+                            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,12">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                        <ui:SymbolIcon Symbol="FolderOpen24" Margin="0,0,8,0" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                                        <TextBlock Text="1. Input Images" FontWeight="SemiBold" FontSize="15" VerticalAlignment="Center" />
+                                    </StackPanel>
+
+                                    <!-- Drop zone & Path -->
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <ui:TextBox Text="{Binding InputPath, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="Select folder or drag files/folders here" VerticalAlignment="Center" Height="34" Margin="0,0,8,0" />
+                                        <ui:Button Grid.Column="1" Content="Browse..." Command="{Binding BrowseInputFolderCommand}" Icon="{ui:SymbolIcon Folder24}" Height="34" />
+                                    </Grid>
+
+                                    <!-- Subfolders & Skip Target Toggle -->
+                                    <CheckBox Content="Include subfolders" IsChecked="{Binding IncludeSubfolders}" Margin="0,0,0,4" />
+                                    <CheckBox Content="Skip files already in target format" IsChecked="{Binding SkipIfAlreadyTargetFormat}" Margin="0,0,0,10" />
+
+                                    <!-- Multi-Select Format Chips -->
+                                    <TextBlock Text="Input format filter:" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,0,0,6" />
+                                    <WrapPanel Margin="0,0,0,10">
+                                        <ToggleButton Content="PNG" IsChecked="{Binding FilterPng}" Margin="0,0,6,6" Padding="10,4" />
+                                        <ToggleButton Content="JPG" IsChecked="{Binding FilterJpg}" Margin="0,0,6,6" Padding="10,4" />
+                                        <ToggleButton Content="WebP" IsChecked="{Binding FilterWebP}" Margin="0,0,6,6" Padding="10,4" />
+                                        <ToggleButton Content="AVIF" IsChecked="{Binding FilterAvif}" Margin="0,0,6,6" Padding="10,4" />
+                                        <ToggleButton Content="HEIC" IsChecked="{Binding FilterHeic}" Margin="0,0,6,6" Padding="10,4" />
+                                        <ToggleButton Content="TIFF" IsChecked="{Binding FilterTiff}" Margin="0,0,6,6" Padding="10,4" />
+                                        <ToggleButton Content="BMP" IsChecked="{Binding FilterBmp}" Margin="0,0,6,6" Padding="10,4" />
+                                        <ToggleButton Content="GIF" IsChecked="{Binding FilterGif}" Margin="0,0,6,6" Padding="10,4" />
+                                        <ToggleButton Content="All Supported" IsChecked="{Binding FilterAllSupported}" Margin="0,0,6,6" Padding="10,4" />
+                                    </WrapPanel>
+
+                                    <!-- Scan Summary Card -->
+                                    <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}" CornerRadius="6" Padding="10">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel>
+                                                <TextBlock Text="Scan Results" FontWeight="Medium" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                <TextBlock Text="{Binding StatusMessage}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" Margin="0,2,0,0" />
+                                            </StackPanel>
+                                            <ui:Button Grid.Column="1" Icon="{ui:SymbolIcon ArrowSync24}" ToolTip="Refresh Scan" Command="{Binding RefreshScanCommand}" Height="30" Width="30" VerticalAlignment="Center" />
+                                        </Grid>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- CARD 2: OUTPUT FORMAT & SMART WARNINGS -->
+                            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,12">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                        <ui:SymbolIcon Symbol="Image24" Margin="0,0,8,0" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                                        <TextBlock Text="2. Output Format" FontWeight="SemiBold" FontSize="15" VerticalAlignment="Center" />
+                                    </StackPanel>
+
+                                    <ComboBox SelectedValue="{Binding SelectedOutputFormat}" SelectedValuePath="Tag" Height="36" Margin="0,0,0,10">
+                                        <ComboBoxItem Content="WebP (.webp) - Modern &amp; compact" Tag="{x:Static models:OutputFormatType.WebP}" />
+                                        <ComboBoxItem Content="AVIF (.avif) - Next-gen high efficiency" Tag="{x:Static models:OutputFormatType.AVIF}" />
+                                        <ComboBoxItem Content="JPEG (.jpg) - Universally compatible" Tag="{x:Static models:OutputFormatType.JPEG}" />
+                                        <ComboBoxItem Content="PNG (.png) - Lossless with transparency" Tag="{x:Static models:OutputFormatType.PNG}" />
+                                        <ComboBoxItem Content="JPEG XL (.jxl) - High fidelity next-gen" Tag="{x:Static models:OutputFormatType.JPEGXL}" />
+                                        <ComboBoxItem Content="TIFF (.tiff) - Archival / print quality" Tag="{x:Static models:OutputFormatType.TIFF}" />
+                                        <ComboBoxItem Content="BMP (.bmp) - Uncompressed bitmap" Tag="{x:Static models:OutputFormatType.BMP}" />
+                                        <ComboBoxItem Content="GIF (.gif) - Animation &amp; 8-bit palette" Tag="{x:Static models:OutputFormatType.GIF}" />
+                                        <ComboBoxItem Content="ICO (.ico) - Multi-size Windows icon" Tag="{x:Static models:OutputFormatType.ICO}" />
+                                    </ComboBox>
+
+                                    <!-- SMART WARNINGS -->
+                                    <!-- Warning 1: JPEG / BMP Transparency -->
+                                    <Border Background="#2B2100" BorderBrush="#D83B01" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,4,0,6"
+                                            Visibility="{Binding ShowTransparencyWarning, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                <ui:SymbolIcon Symbol="Warning24" Foreground="#FFB900" Margin="0,0,6,0" />
+                                                <TextBlock Text="Transparency not supported in target format" FontWeight="SemiBold" Foreground="#FFB900" />
+                                            </StackPanel>
+                                            <TextBlock Text="JPEG/BMP will flatten transparent pixels onto background color." FontSize="12" Foreground="#E0E0E0" TextWrapping="Wrap" Margin="0,0,0,6" />
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock Text="Background Color:" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                                <ui:TextBox Text="{Binding Settings.JpegBackgroundColorHex, UpdateSourceTrigger=PropertyChanged}" Width="90" Height="26" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                                <Border Width="26" Height="26" CornerRadius="3" BorderBrush="Gray" BorderThickness="1" Background="{Binding Settings.JpegBackgroundColorHex}" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Warning 2: Lossy (JPG) to Lossless (PNG) -->
+                                    <Border Background="#1C2438" BorderBrush="#0078D4" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,4,0,6"
+                                            Visibility="{Binding ShowLossyToLosslessWarning, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <ui:SymbolIcon Symbol="Info24" Foreground="#60CDFF" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                            <TextBlock Text="Note: Converting lossy (JPG) to lossless (PNG) does not restore lost quality." FontSize="12" Foreground="#E0E0E0" TextWrapping="Wrap" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Warning 3: Animated GIF input -->
+                                    <Border Background="#2B2100" BorderBrush="#FFB900" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,4,0,6"
+                                            Visibility="{Binding ShowAnimatedGifWarning, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <ui:SymbolIcon Symbol="Warning24" Foreground="#FFB900" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                            <TextBlock Text="Animated GIF detected: Target format does not support animation; first frame will be converted." FontSize="12" Foreground="#E0E0E0" TextWrapping="Wrap" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Warning 4: HEIC / AVIF / JXL Slower -->
+                                    <Border Background="#1F1F1F" BorderBrush="#3B3B3B" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,4,0,0"
+                                            Visibility="{Binding ShowSlowCodecWarning, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <ui:SymbolIcon Symbol="Timer24" Foreground="#A0A0A0" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                            <TextBlock Text="AVIF / JPEG XL encoding requires intensive compression and may be slower." FontSize="12" Foreground="#B0B0B0" TextWrapping="Wrap" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- CARD 3: OUTPUT LOCATION & NAMING -->
+                            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,12">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                        <ui:SymbolIcon Symbol="Save24" Margin="0,0,8,0" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                                        <TextBlock Text="3. Output Location &amp; Naming" FontWeight="SemiBold" FontSize="15" VerticalAlignment="Center" />
+                                    </StackPanel>
+
+                                    <!-- Destination radio options (wired to clean two-way boolean properties) -->
+                                    <RadioButton Content="Save in same folder as original"
+                                                 IsChecked="{Binding SaveInSameFolder, Mode=TwoWay}"
+                                                 GroupName="OutputLocationGroup" Margin="0,0,0,6" />
+                                    <RadioButton Content="Save in separate output folder (mirrors structure)"
+                                                 IsChecked="{Binding SaveInSeparateFolder, Mode=TwoWay}"
+                                                 GroupName="OutputLocationGroup" Margin="0,0,0,8" />
+
+                                    <Grid Margin="0,0,0,10" IsEnabled="{Binding SaveInSeparateFolder}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <ui:TextBox Text="{Binding Settings.CustomOutputFolder, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="Custom output folder path" Height="34" Margin="0,0,8,0" />
+                                        <ui:Button Grid.Column="1" Content="Browse..." Command="{Binding BrowseCustomOutputFolderCommand}" Height="34" />
+                                    </Grid>
+
+                                    <!-- Overwrite behavior -->
+                                    <TextBlock Text="Overwrite behavior:" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,0,0,4" />
+                                    <ComboBox SelectedValue="{Binding Settings.OverwriteMode}" SelectedValuePath="Tag" Height="32" Margin="0,0,0,10">
+                                        <ComboBoxItem Content="Auto-rename existing files: image (1).ext" Tag="{x:Static models:OverwriteBehavior.AutoRename}" />
+                                        <ComboBoxItem Content="Overwrite existing files" Tag="{x:Static models:OverwriteBehavior.Overwrite}" />
+                                        <ComboBoxItem Content="Skip existing files" Tag="{x:Static models:OverwriteBehavior.Skip}" />
+                                    </ComboBox>
+
+                                    <!-- Prefix & Suffix -->
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="8" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="Prefix:" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,2" />
+                                            <ui:TextBox Text="{Binding Settings.Prefix, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="e.g. thumb_" Height="32" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2">
+                                            <TextBlock Text="Suffix:" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,2" />
+                                            <ui:TextBox Text="{Binding Settings.Suffix, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="e.g. _web" Height="32" />
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- CARD 4: BACKUP ORIGINALS -->
+                            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,12">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                        <ui:SymbolIcon Symbol="ShieldCheckmark24" Margin="0,0,8,0" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                                        <TextBlock Text="4. Backup &amp; Safety" FontWeight="SemiBold" FontSize="15" VerticalAlignment="Center" />
+                                    </StackPanel>
+
+                                    <CheckBox Content="Backup originals before converting" IsChecked="{Binding Settings.BackupOriginals}" FontWeight="Medium" Margin="0,0,0,8" />
+
+                                    <Grid Margin="0,0,0,8" IsEnabled="{Binding Settings.BackupOriginals}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <ui:TextBox Text="{Binding Settings.BackupFolder, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="Default: Backup_&lt;date-time&gt; next to folder" Height="32" Margin="0,0,8,0" />
+                                        <ui:Button Grid.Column="1" Content="Browse..." Command="{Binding BrowseBackupFolderCommand}" Height="32" />
+                                    </Grid>
+
+                                    <!-- Delete vs Keep originals -->
+                                    <TextBlock Text="Originals retention:" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,4" />
+                                    <RadioButton Content="Keep originals (safest)" IsChecked="{Binding Settings.DeleteOriginalsAfterSuccess, Converter={StaticResource InvertedBooleanToVisibilityConverter}}" Margin="0,0,0,4" />
+                                    <RadioButton Content="Delete originals after successful verified conversion" IsChecked="{Binding Settings.DeleteOriginalsAfterSuccess}" Margin="0,0,0,8" />
+
+                                    <TextBlock Text="* Note: Originals are NEVER deleted if backup verification fails or output size is 0." FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- RIGHT COLUMN: DYNAMIC FORMAT SETTINGS & COMMON SETTINGS -->
+                    <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel Margin="0,0,6,0">
+
+                            <!-- DYNAMIC FORMAT-SPECIFIC SETTINGS -->
+                            <!-- 1. WEBP SETTINGS -->
+                            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,12"
+                                    Visibility="{Binding SelectedOutputFormat, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=WebP}">
+                                <StackPanel>
+                                    <TextBlock Text="WebP Compression Settings (cwebp)" FontWeight="SemiBold" FontSize="16" Margin="0,0,0,12" />
+
+                                    <!-- Quality / Lossless -->
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                <TextBlock Text="Quality (-q): " FontWeight="Medium" />
+                                                <TextBlock Text="{Binding Settings.WebPQuality}" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                                            </StackPanel>
+                                            <Slider Minimum="0" Maximum="100" Value="{Binding Settings.WebPQuality}" IsEnabled="{Binding Settings.WebPLossless, Converter={StaticResource InvertedBooleanToVisibilityConverter}}" ToolTip="Compression quality 0-100. Default 80." />
+                                        </StackPanel>
+                                        <CheckBox Grid.Column="1" Content="Lossless (-lossless)" IsChecked="{Binding Settings.WebPLossless}" VerticalAlignment="Center" Margin="16,0,0,0" ToolTip="Lossless WebP encoding for maximum fidelity." />
+                                    </Grid>
+
+                                    <!-- Method / Compression Effort -->
+                                    <StackPanel Margin="0,0,0,12">
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                            <TextBlock Text="Compression Method (-m): " FontWeight="Medium" />
+                                            <TextBlock Text="{Binding Settings.WebPMethod}" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                                            <TextBlock Text=" (0=fastest, 6=smallest size)" Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12" />
+                                        </StackPanel>
+                                        <Slider Minimum="0" Maximum="6" Value="{Binding Settings.WebPMethod}" ToolTip="Quality/speed trade-off 0-6. Default 4." />
+                                    </StackPanel>
+
+                                    <!-- Preset & Alpha Quality -->
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="12" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="Preset (-preset):" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4" />
+                                            <ComboBox SelectedValue="{Binding Settings.WebPPreset}" SelectedValuePath="Tag" Height="32">
+                                                <ComboBoxItem Content="Default" Tag="default" />
+                                                <ComboBoxItem Content="Picture" Tag="picture" />
+                                                <ComboBoxItem Content="Photo" Tag="photo" />
+                                                <ComboBoxItem Content="Drawing" Tag="drawing" />
+                                                <ComboBoxItem Content="Icon" Tag="icon" />
+                                                <ComboBoxItem Content="Text" Tag="text" />
+                                            </ComboBox>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2">
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                <TextBlock Text="Alpha Quality: " FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                <TextBlock Text="{Binding Settings.WebPAlphaQuality}" FontSize="12" FontWeight="SemiBold" />
+                                            </StackPanel>
+                                            <Slider Minimum="0" Maximum="100" Value="{Binding Settings.WebPAlphaQuality}" ToolTip="Transparency compression quality." />
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <!-- Advanced WebP Toggles -->
+                                    <WrapPanel Margin="0,0,0,8">
+                                        <CheckBox Content="Exact (-exact)" IsChecked="{Binding Settings.WebPExact}" Margin="0,0,14,6" ToolTip="Preserve RGB values under transparent area." />
+                                        <CheckBox Content="Sharp YUV (-sharp_yuv)" IsChecked="{Binding Settings.WebPSharpYuv}" Margin="0,0,14,6" ToolTip="Better RGB to YUV conversion with sharp edges." />
+                                        <CheckBox Content="Multithreading (-mt)" IsChecked="{Binding Settings.WebPMultithread}" Margin="0,0,14,6" ToolTip="Use multithreaded encoding." />
+                                    </WrapPanel>
+
+                                    <!-- Filter Strength & Sharpness -->
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="12" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                <TextBlock Text="Filter Strength (-f): " FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                <TextBlock Text="{Binding Settings.WebPFilterStrength}" FontSize="12" FontWeight="SemiBold" />
+                                            </StackPanel>
+                                            <Slider Minimum="0" Maximum="100" Value="{Binding Settings.WebPFilterStrength}" ToolTip="Deblocking filter strength." />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2">
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                <TextBlock Text="Sharpness (-sharpness): " FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                <TextBlock Text="{Binding Settings.WebPSharpness}" FontSize="12" FontWeight="SemiBold" />
+                                            </StackPanel>
+                                            <Slider Minimum="0" Maximum="7" Value="{Binding Settings.WebPSharpness}" ToolTip="Filter sharpness 0-7." />
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 2. AVIF SETTINGS -->
+                            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,12"
+                                    Visibility="{Binding SelectedOutputFormat, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=AVIF}">
+                                <StackPanel>
+                                    <TextBlock Text="AVIF Settings" FontWeight="SemiBold" FontSize="16" Margin="0,0,0,12" />
+
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                <TextBlock Text="Quality: " FontWeight="Medium" />
+                                                <TextBlock Text="{Binding Settings.AvifQuality}" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                                            </StackPanel>
+                                            <Slider Minimum="0" Maximum="100" Value="{Binding Settings.AvifQuality}" IsEnabled="{Binding Settings.AvifLossless, Converter={StaticResource InvertedBooleanToVisibilityConverter}}" />
+                                        </StackPanel>
+                                        <CheckBox Grid.Column="1" Content="Lossless" IsChecked="{Binding Settings.AvifLossless}" VerticalAlignment="Center" Margin="16,0,0,0" />
+                                    </Grid>
+
+                                    <StackPanel Margin="0,0,0,12">
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                            <TextBlock Text="Speed / Effort (0=slowest/best, 10=fastest): " FontWeight="Medium" />
+                                            <TextBlock Text="{Binding Settings.AvifSpeedEffort}" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                                        </StackPanel>
+                                        <Slider Minimum="0" Maximum="10" Value="{Binding Settings.AvifSpeedEffort}" />
+                                    </StackPanel>
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="12" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="Chroma Subsampling:" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4" />
+                                            <ComboBox SelectedValue="{Binding Settings.AvifChromaSubsampling}" SelectedValuePath="Tag" Height="32">
+                                                <ComboBoxItem Content="4:2:0 (Standard)" Tag="4:2:0" />
+                                                <ComboBoxItem Content="4:2:2 (Higher)" Tag="4:2:2" />
+                                                <ComboBoxItem Content="4:4:4 (Maximum fidelity)" Tag="4:4:4" />
+                                            </ComboBox>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2">
+                                            <TextBlock Text="Bit Depth:" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4" />
+                                            <ComboBox SelectedValue="{Binding Settings.AvifBitDepthString}" SelectedValuePath="Tag" Height="32">
+                                                <ComboBoxItem Content="8-bit (Standard)" Tag="8" />
+                                                <ComboBoxItem Content="10-bit (HDR)" Tag="10" />
+                                                <ComboBoxItem Content="12-bit (Studio)" Tag="12" />
+                                            </ComboBox>
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 3. JPEG SETTINGS -->
+                            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,12"
+                                    Visibility="{Binding SelectedOutputFormat, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=JPEG}">
+                                <StackPanel>
+                                    <TextBlock Text="JPEG Settings" FontWeight="SemiBold" FontSize="16" Margin="0,0,0,12" />
+
+                                    <StackPanel Margin="0,0,0,12">
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                            <TextBlock Text="Quality: " FontWeight="Medium" />
+                                            <TextBlock Text="{Binding Settings.JpegQuality}" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                                        </StackPanel>
+                                        <Slider Minimum="1" Maximum="100" Value="{Binding Settings.JpegQuality}" />
+                                    </StackPanel>
+
+                                    <WrapPanel Margin="0,0,0,12">
+                                        <CheckBox Content="Progressive JPEG" IsChecked="{Binding Settings.JpegProgressive}" Margin="0,0,16,0" ToolTip="Renders progressively during web download." />
+                                        <CheckBox Content="Optimize Huffman tables" IsChecked="{Binding Settings.JpegOptimizeHuffman}" ToolTip="Reduces file size without quality loss." />
+                                    </WrapPanel>
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="12" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="Chroma Subsampling:" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4" />
+                                            <ComboBox SelectedValue="{Binding Settings.JpegChromaSubsampling}" SelectedValuePath="Tag" Height="32">
+                                                <ComboBoxItem Content="4:2:0 (Standard)" Tag="4:2:0" />
+                                                <ComboBoxItem Content="4:2:2 (Sharper color)" Tag="4:2:2" />
+                                                <ComboBoxItem Content="4:4:4 (No chroma subsampling)" Tag="4:4:4" />
+                                            </ComboBox>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2">
+                                            <TextBlock Text="Background for Transparency:" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4" />
+                                            <ui:TextBox Text="{Binding Settings.JpegBackgroundColorHex, UpdateSourceTrigger=PropertyChanged}" Height="32" />
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 4. PNG SETTINGS -->
+                            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,12"
+                                    Visibility="{Binding SelectedOutputFormat, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=PNG}">
+                                <StackPanel>
+                                    <TextBlock Text="PNG Settings" FontWeight="SemiBold" FontSize="16" Margin="0,0,0,12" />
+
+                                    <StackPanel Margin="0,0,0,12">
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                            <TextBlock Text="Compression Level (0-9): " FontWeight="Medium" />
+                                            <TextBlock Text="{Binding Settings.PngCompressionLevel}" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                                        </StackPanel>
+                                        <Slider Minimum="0" Maximum="9" Value="{Binding Settings.PngCompressionLevel}" />
+                                    </StackPanel>
+
+                                    <CheckBox Content="Interlaced PNG (Adam7)" IsChecked="{Binding Settings.PngInterlaced}" Margin="0,0,0,12" />
+
+                                    <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}" CornerRadius="6" Padding="10">
+                                        <StackPanel>
+                                            <CheckBox Content="Quantize to 8-bit palette (pngquant style)" IsChecked="{Binding Settings.PngQuantize8Bit}" FontWeight="Medium" Margin="0,0,0,6" />
+                                            <StackPanel IsEnabled="{Binding Settings.PngQuantize8Bit}">
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                    <TextBlock Text="Color Count: " FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                    <TextBlock Text="{Binding Settings.PngQuantizeColors}" FontSize="12" FontWeight="SemiBold" />
+                                                </StackPanel>
+                                                <Slider Minimum="2" Maximum="256" Value="{Binding Settings.PngQuantizeColors}" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 5. JPEG XL SETTINGS -->
+                            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,12"
+                                    Visibility="{Binding SelectedOutputFormat, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=JPEGXL}">
+                                <StackPanel>
+                                    <TextBlock Text="JPEG XL Settings" FontWeight="SemiBold" FontSize="16" Margin="0,0,0,12" />
+
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                <TextBlock Text="Quality: " FontWeight="Medium" />
+                                                <TextBlock Text="{Binding Settings.JxlQuality}" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                                            </StackPanel>
+                                            <Slider Minimum="1" Maximum="100" Value="{Binding Settings.JxlQuality}" IsEnabled="{Binding Settings.JxlLossless, Converter={StaticResource InvertedBooleanToVisibilityConverter}}" />
+                                        </StackPanel>
+                                        <CheckBox Grid.Column="1" Content="Lossless" IsChecked="{Binding Settings.JxlLossless}" VerticalAlignment="Center" Margin="16,0,0,0" />
+                                    </Grid>
+
+                                    <StackPanel Margin="0,0,0,12">
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                            <TextBlock Text="Effort (1=fastest, 9=maximum compression): " FontWeight="Medium" />
+                                            <TextBlock Text="{Binding Settings.JxlEffort}" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                                        </StackPanel>
+                                        <Slider Minimum="1" Maximum="9" Value="{Binding Settings.JxlEffort}" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 6. TIFF SETTINGS -->
+                            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,12"
+                                    Visibility="{Binding SelectedOutputFormat, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=TIFF}">
+                                <StackPanel>
+                                    <TextBlock Text="TIFF Settings" FontWeight="SemiBold" FontSize="16" Margin="0,0,0,12" />
+                                    <TextBlock Text="Compression Algorithm:" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4" />
+                                    <ComboBox SelectedValue="{Binding Settings.TiffCompression}" SelectedValuePath="Tag" Height="34">
+                                        <ComboBoxItem Content="LZW (Lossless, widely compatible)" Tag="LZW" />
+                                        <ComboBoxItem Content="ZIP / Deflate (Lossless, high compression)" Tag="ZIP" />
+                                        <ComboBoxItem Content="JPEG (Lossy, smaller files)" Tag="JPEG" />
+                                        <ComboBoxItem Content="None (Uncompressed)" Tag="None" />
+                                    </ComboBox>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 7. BMP SETTINGS -->
+                            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,12"
+                                    Visibility="{Binding SelectedOutputFormat, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=BMP}">
+                                <StackPanel>
+                                    <TextBlock Text="BMP Settings" FontWeight="SemiBold" FontSize="16" Margin="0,0,0,12" />
+                                    <TextBlock Text="Background for Transparency:" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4" />
+                                    <ui:TextBox Text="{Binding Settings.BmpBackgroundColorHex, UpdateSourceTrigger=PropertyChanged}" Height="34" />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 8. GIF SETTINGS -->
+                            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,12"
+                                    Visibility="{Binding SelectedOutputFormat, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=GIF}">
+                                <StackPanel>
+                                    <TextBlock Text="GIF Settings" FontWeight="SemiBold" FontSize="16" Margin="0,0,0,12" />
+
+                                    <StackPanel Margin="0,0,0,12">
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                            <TextBlock Text="Color Palette Size: " FontWeight="Medium" />
+                                            <TextBlock Text="{Binding Settings.GifColorCount}" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                                        </StackPanel>
+                                        <Slider Minimum="2" Maximum="256" Value="{Binding Settings.GifColorCount}" />
+                                    </StackPanel>
+
+                                    <WrapPanel>
+                                        <CheckBox Content="Floyd-Steinberg Dithering" IsChecked="{Binding Settings.GifDithering}" Margin="0,0,16,0" />
+                                        <CheckBox Content="Preserve Animation (if multi-frame)" IsChecked="{Binding Settings.GifKeepAnimation}" />
+                                    </WrapPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 9. ICO SETTINGS -->
+                            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,12"
+                                    Visibility="{Binding SelectedOutputFormat, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=ICO}">
+                                <StackPanel>
+                                    <TextBlock Text="ICO Multi-Size Settings" FontWeight="SemiBold" FontSize="16" Margin="0,0,0,12" />
+                                    <TextBlock Text="Select icon layer resolutions to package into the .ico file:" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,8" />
+                                    <WrapPanel>
+                                        <CheckBox Content="16 x 16" IsChecked="{Binding Settings.IcoSize16}" Margin="0,0,14,6" />
+                                        <CheckBox Content="32 x 32" IsChecked="{Binding Settings.IcoSize32}" Margin="0,0,14,6" />
+                                        <CheckBox Content="48 x 48" IsChecked="{Binding Settings.IcoSize48}" Margin="0,0,14,6" />
+                                        <CheckBox Content="64 x 64" IsChecked="{Binding Settings.IcoSize64}" Margin="0,0,14,6" />
+                                        <CheckBox Content="128 x 128" IsChecked="{Binding Settings.IcoSize128}" Margin="0,0,14,6" />
+                                        <CheckBox Content="256 x 256" IsChecked="{Binding Settings.IcoSize256}" Margin="0,0,14,6" />
+                                    </WrapPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- COMMON SETTINGS: RESIZE -->
+                            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,12">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                        <ui:SymbolIcon Symbol="ArrowExpand24" Margin="0,0,8,0" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                                        <TextBlock Text="Optional Resize" FontWeight="SemiBold" FontSize="15" VerticalAlignment="Center" />
+                                    </StackPanel>
+
+                                    <CheckBox Content="Enable image resizing" IsChecked="{Binding Settings.EnableResize}" FontWeight="Medium" Margin="0,0,0,8" />
+
+                                    <Grid Margin="0,0,0,8" IsEnabled="{Binding Settings.EnableResize}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="12" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="Max Width (px):" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,2" />
+                                            <ui:TextBox Text="{Binding Settings.ResizeWidth, UpdateSourceTrigger=PropertyChanged}" Height="32" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2">
+                                            <TextBlock Text="Max Height (px):" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,2" />
+                                            <ui:TextBox Text="{Binding Settings.ResizeHeight, UpdateSourceTrigger=PropertyChanged}" Height="32" />
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <WrapPanel Margin="0,0,0,8" IsEnabled="{Binding Settings.EnableResize}">
+                                        <CheckBox Content="Maintain aspect ratio" IsChecked="{Binding Settings.KeepAspectRatio}" Margin="0,0,16,4" />
+                                        <CheckBox Content="Only shrink, never enlarge" IsChecked="{Binding Settings.OnlyShrinkNeverEnlarge}" Margin="0,0,16,4" />
+                                    </WrapPanel>
+
+                                    <StackPanel IsEnabled="{Binding Settings.EnableResize}">
+                                        <TextBlock Text="Resample Filter:" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,2" />
+                                        <ComboBox SelectedValue="{Binding Settings.ResampleFilter}" SelectedValuePath="Tag" Height="32">
+                                            <ComboBoxItem Content="Lanczos (Default, sharpest)" Tag="Lanczos" />
+                                            <ComboBoxItem Content="Mitchell (Balanced sharpness)" Tag="Mitchell" />
+                                            <ComboBoxItem Content="Cubic (Smooth)" Tag="Cubic" />
+                                            <ComboBoxItem Content="Box (Fastest nearest)" Tag="Box" />
+                                        </ComboBox>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- COMMON SETTINGS: METADATA & ORIENTATION -->
+                            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,12">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                        <ui:SymbolIcon Symbol="Tag24" Margin="0,0,8,0" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                                        <TextBlock Text="Metadata &amp; EXIF" FontWeight="SemiBold" FontSize="15" VerticalAlignment="Center" />
+                                    </StackPanel>
+
+                                    <TextBlock Text="Metadata Mode:" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4" />
+                                    <ComboBox SelectedValue="{Binding Settings.MetadataMode}" SelectedValuePath="Tag" Height="32" Margin="0,0,0,10">
+                                        <ComboBoxItem Content="Keep all metadata &amp; color profiles" Tag="{x:Static models:MetadataMode.KeepAll}" />
+                                        <ComboBoxItem Content="Strip all metadata (smallest file size)" Tag="{x:Static models:MetadataMode.StripAll}" />
+                                        <ComboBoxItem Content="Keep EXIF only" Tag="{x:Static models:MetadataMode.KeepExif}" />
+                                        <ComboBoxItem Content="Keep ICC color profile only" Tag="{x:Static models:MetadataMode.KeepIcc}" />
+                                    </ComboBox>
+
+                                    <CheckBox Content="Auto-rotate based on EXIF orientation" IsChecked="{Binding Settings.AutoRotate}" ToolTip="Corrects photo orientation automatically." />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- PERFORMANCE & WORKERS -->
+                            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,12">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                        <ui:SymbolIcon Symbol="DeveloperBoard24" Margin="0,0,8,0" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                                        <TextBlock Text="Performance &amp; Efficiency" FontWeight="SemiBold" FontSize="15" VerticalAlignment="Center" />
+                                    </StackPanel>
+
+                                    <StackPanel Margin="0,0,0,10">
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                            <TextBlock Text="Parallel Worker Threads: " FontWeight="Medium" />
+                                            <TextBlock Text="{Binding Settings.WorkerCount}" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                                        </StackPanel>
+                                        <Slider Minimum="1" Maximum="32" Value="{Binding Settings.WorkerCount}" ToolTip="Parallel workers. Default is CPU cores / 2." />
+                                    </StackPanel>
+
+                                    <CheckBox Content="If output is larger than original, keep the original" IsChecked="{Binding Settings.KeepOriginalIfLarger}" ToolTip="Discards converted file if it resulted in larger byte size than original." />
+                                </StackPanel>
+                            </Border>
+
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </TabItem>
+
+            <!-- TAB 2: RESULTS & LOGS -->
+            <TabItem Header="Batch Results">
+                <Grid Margin="0,8,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <!-- Summary Action Card -->
+                    <Border Grid.Row="0" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,10">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <StackPanel Margin="0,0,24,0">
+                                    <TextBlock Text="Converted" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock Text="{Binding ConvertedCount}" FontWeight="Bold" FontSize="18" Foreground="#107C41" />
+                                </StackPanel>
+                                <StackPanel Margin="0,0,24,0">
+                                    <TextBlock Text="Skipped" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock Text="{Binding SkippedCount}" FontWeight="Bold" FontSize="18" Foreground="#D88300" />
+                                </StackPanel>
+                                <StackPanel Margin="0,0,24,0">
+                                    <TextBlock Text="Failed" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock Text="{Binding FailedCount}" FontWeight="Bold" FontSize="18" Foreground="#DB2B39" />
+                                </StackPanel>
+                                <StackPanel Margin="0,0,24,0">
+                                    <TextBlock Text="Total Space Saved" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding SavedBytes, Converter={StaticResource FileSizeConverter}}" FontWeight="Bold" FontSize="18" Foreground="{Binding SavedBytes, Converter={StaticResource SpaceSavingsColorConverter}}" />
+                                        <TextBlock Text=" (" FontSize="14" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding SavedPercent, Converter={StaticResource PercentageConverter}}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        <TextBlock Text=")" FontSize="14" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <ui:Button Icon="{ui:SymbolIcon FolderOpen24}" Content="Open Output" Command="{Binding OpenOutputFolderCommand}" Height="34" Margin="0,0,8,0" />
+                                <ui:Button Icon="{ui:SymbolIcon Shield24}" Content="Open Backup" Command="{Binding OpenBackupFolderCommand}" Height="34" Margin="0,0,8,0" />
+                                <ui:Button Icon="{ui:SymbolIcon DocumentTable24}" Content="Export CSV" Command="{Binding ExportCsvCommand}" Height="34" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Virtualized DataGrid -->
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding ConversionItems}" SelectedItem="{Binding SelectedItem}"
+                              AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                              VirtualizingStackPanel.IsVirtualizing="True"
+                              VirtualizingStackPanel.VirtualizationMode="Recycling"
+                              EnableRowVirtualization="True"
+                              GridLinesVisibility="Horizontal"
+                              HorizontalScrollBarVisibility="Auto"
+                              VerticalScrollBarVisibility="Auto">
+                        <DataGrid.Columns>
+                            <!-- Status with badge/icon -->
+                            <DataGridTemplateColumn Header="Status" Width="100">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="6,2">
+                                            <ui:SymbolIcon Symbol="{Binding Status, Converter={StaticResource StatusToIconConverter}}"
+                                                           Foreground="{Binding Status, Converter={StaticResource StatusToColorConverter}}" Margin="0,0,6,0" />
+                                            <TextBlock Text="{Binding Status}" Foreground="{Binding Status, Converter={StaticResource StatusToColorConverter}}" FontWeight="Medium" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTextColumn Header="File Name" Binding="{Binding FileName}" Width="180" FontWeight="SemiBold" />
+                            <DataGridTextColumn Header="Relative Path" Binding="{Binding RelativePath}" Width="180" />
+                            <DataGridTextColumn Header="Input" Binding="{Binding InputFormat}" Width="70" />
+                            <DataGridTextColumn Header="Output" Binding="{Binding OutputFormat}" Width="70" />
+                            <DataGridTextColumn Header="Original Size" Binding="{Binding OriginalSize, Converter={StaticResource FileSizeConverter}}" Width="100" />
+                            <DataGridTextColumn Header="New Size" Binding="{Binding OutputSize, Converter={StaticResource FileSizeConverter}}" Width="100" />
+                            <DataGridTextColumn Header="Saved %" Binding="{Binding SavedPercent, Converter={StaticResource PercentageConverter}}" Width="80" />
+                            <DataGridTextColumn Header="Duration" Binding="{Binding DurationMs, StringFormat={}{0} ms}" Width="80" />
+                            <DataGridTextColumn Header="Details / Error" Binding="{Binding ErrorMessage}" Width="*" />
+                        </DataGrid.Columns>
+
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow">
+                                <EventSetter Event="MouseDoubleClick" Handler="DataGridRow_MouseDoubleClick" />
+                            </Style>
+                        </DataGrid.RowStyle>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+        <!-- BOTTOM PROGRESS PANEL & START BAR -->
+        <Border Grid.Row="2" Background="{DynamicResource LayerOnAcrylicAccentFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="0,1,0,0" Padding="16,10">
+            <StackPanel>
+                <!-- EXPANDED PROGRESS SECTION -->
+                <Grid Margin="0,0,0,8" Visibility="{Binding IsRunning, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <!-- Row 1: Overall Progress Bar and label -->
+                    <Grid Grid.Row="0" Margin="0,0,0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="Overall Progress: " FontWeight="Medium" />
+                            <TextBlock Text="{Binding OverallProgressText}" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding ElapsedTimeText}" Margin="0,0,12,0" />
+                            <TextBlock Text="{Binding EtaText}" FontWeight="Medium" Margin="0,0,12,0" />
+                            <TextBlock Text="{Binding SpeedText}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                    </Grid>
+
+                    <ProgressBar Grid.Row="1" Value="{Binding OverallProgress}" Height="6" Margin="0,0,0,6" />
+
+                    <!-- Row 2: Current File progress -->
+                    <Grid Grid.Row="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="Processing: " FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            <TextBlock Text="{Binding CurrentFileLabel}" FontSize="12" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <TextBlock Text="Saved: " FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            <TextBlock Text="{Binding SavedBytes, Converter={StaticResource FileSizeConverter}}" FontSize="12" FontWeight="SemiBold" Foreground="{Binding SavedBytes, Converter={StaticResource SpaceSavingsColorConverter}}" Margin="0,0,4,0" />
+                            <TextBlock Text="(" FontSize="12" />
+                            <TextBlock Text="{Binding SavedPercent, Converter={StaticResource PercentageConverter}}" FontSize="12" FontWeight="SemiBold" />
+                            <TextBlock Text=")" FontSize="12" />
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+
+                <!-- CONTROL BUTTONS & START BUTTON -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Left: Status text & Counters -->
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding StatusMessage}" FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,16,0" />
+                        <Border Background="#107C41" CornerRadius="12" Padding="8,2" Margin="0,0,6,0">
+                            <TextBlock Text="{Binding ConvertedCount, StringFormat={}{0} converted}" FontSize="11" Foreground="White" FontWeight="SemiBold" />
+                        </Border>
+                        <Border Background="#D88300" CornerRadius="12" Padding="8,2" Margin="0,0,6,0">
+                            <TextBlock Text="{Binding SkippedCount, StringFormat={}{0} skipped}" FontSize="11" Foreground="White" FontWeight="SemiBold" />
+                        </Border>
+                        <Border Background="#DB2B39" CornerRadius="12" Padding="8,2">
+                            <TextBlock Text="{Binding FailedCount, StringFormat={}{0} failed}" FontSize="11" Foreground="White" FontWeight="SemiBold" />
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Right: Action Buttons -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <ui:Button Icon="{ui:SymbolIcon Pause24}" Content="Pause" Command="{Binding TogglePauseResumeCommand}" Height="38" Margin="0,0,8,0"
+                                   Visibility="{Binding IsRunning, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                        <ui:Button Icon="{ui:SymbolIcon Dismiss24}" Content="Cancel" Command="{Binding PromptCancelBatchCommand}" Height="38" Margin="0,0,8,0"
+                                   Visibility="{Binding IsRunning, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                        <ui:Button Appearance="Primary" Icon="{ui:SymbolIcon Play24}" Content="Start Conversion" Command="{Binding StartBatchCommand}" Height="38" Width="170" FontWeight="SemiBold" FontSize="13"
+                                   IsEnabled="{Binding IsRunning, Converter={StaticResource InvertedBooleanToVisibilityConverter}}" />
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- ========================================================================= -->
+        <!-- FLUENT MODAL DIALOG OVERLAYS (MATCHING WINDOWS 11 FLUENT DESIGN)          -->
+        <!-- ========================================================================= -->
+
+        <!-- 1. FLUENT CONFIRMATION DIALOG -->
+        <Grid Grid.Row="0" Grid.RowSpan="3" Background="#88000000"
+              Visibility="{Binding IsConfirmDialogOpen, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <Border HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Width="500"
+                    Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1" CornerRadius="12" Padding="24">
+                <StackPanel>
+                    <!-- Header -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                        <Border Width="38" Height="38" CornerRadius="19" Background="{DynamicResource AccentFillColorDefaultBrush}" Margin="0,0,12,0">
+                            <ui:SymbolIcon Symbol="Play24" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="Fileo - Confirm Conversion" FontSize="17" FontWeight="SemiBold" />
+                            <TextBlock Text="Please review batch settings before starting" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <Separator Margin="0,0,0,16" Background="{DynamicResource CardStrokeColorDefaultBrush}" />
+
+                    <!-- Summary Card with Badges -->
+                    <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="140" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Row 0: Images to convert -->
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Images Count:" FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,8" />
+                            <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,8">
+                                <TextBlock Text="{Binding ScannedFiles.Count}" FontWeight="Bold" FontSize="13" />
+                                <TextBlock Text=" files (" Margin="4,0,0,0" FontSize="13" />
+                                <TextBlock Text="{Binding ScanSummary.TotalSizeFormatted}" FontWeight="SemiBold" FontSize="13" />
+                                <TextBlock Text=")" FontSize="13" />
+                            </StackPanel>
+
+                            <!-- Row 1: Format Target -->
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Target Format:" FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,8" />
+                            <Border Grid.Row="1" Grid.Column="1" Background="{DynamicResource AccentFillColorSecondaryBrush}" HorizontalAlignment="Left" CornerRadius="4" Padding="8,2" Margin="0,0,0,8">
+                                <TextBlock Text="{Binding SelectedOutputFormat}" FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                            </Border>
+
+                            <!-- Row 2: Destination -->
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Output Folder:" FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,8" />
+                            <TextBlock Grid.Row="2" Grid.Column="1" FontSize="12" FontWeight="Medium" TextTrimming="CharacterEllipsis" Margin="0,0,0,8">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="Same folder as original files" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding SaveInSeparateFolder}" Value="True">
+                                                <Setter Property="Text" Value="{Binding Settings.CustomOutputFolder}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+
+                            <!-- Row 3: Backup Status -->
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Backup Originals:" FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,8" />
+                            <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,8">
+                                <Border Background="#107C41" CornerRadius="4" Padding="6,2" Visibility="{Binding Settings.BackupOriginals, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <TextBlock Text="Enabled (SHA-256 Verified)" FontSize="11" Foreground="White" FontWeight="SemiBold" />
+                                </Border>
+                                <Border Background="#5A5A5A" CornerRadius="4" Padding="6,2" Visibility="{Binding Settings.BackupOriginals, Converter={StaticResource InvertedBooleanToVisibilityConverter}}">
+                                    <TextBlock Text="Disabled" FontSize="11" Foreground="White" FontWeight="SemiBold" />
+                                </Border>
+                            </StackPanel>
+
+                            <!-- Row 4: Retention -->
+                            <TextBlock Grid.Row="4" Grid.Column="0" Text="Original Files:" FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal">
+                                <Border Background="#107C41" CornerRadius="4" Padding="6,2" Visibility="{Binding Settings.DeleteOriginalsAfterSuccess, Converter={StaticResource InvertedBooleanToVisibilityConverter}}">
+                                    <TextBlock Text="Keep Originals (Safe)" FontSize="11" Foreground="White" FontWeight="SemiBold" />
+                                </Border>
+                                <Border Background="#DB2B39" CornerRadius="4" Padding="6,2" Visibility="{Binding Settings.DeleteOriginalsAfterSuccess, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <TextBlock Text="Delete After Verified Conversion" FontSize="11" Foreground="White" FontWeight="SemiBold" />
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Buttons -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <ui:Button Content="Cancel" Command="{Binding CloseConfirmDialogCommand}" Height="36" Width="90" Margin="0,0,10,0" />
+                        <ui:Button Appearance="Primary" Icon="{ui:SymbolIcon Play24}" Content="Start Conversion" Command="{Binding ConfirmAndStartBatchCommand}" Height="36" Width="160" FontWeight="SemiBold" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- 2. FLUENT CANCEL CONFIRMATION DIALOG -->
+        <Grid Grid.Row="0" Grid.RowSpan="3" Background="#88000000"
+              Visibility="{Binding IsCancelDialogOpen, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <Border HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Width="440"
+                    Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1" CornerRadius="12" Padding="24">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                        <Border Width="38" Height="38" CornerRadius="19" Background="#D83B01" Margin="0,0,12,0">
+                            <ui:SymbolIcon Symbol="Dismiss24" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="Cancel Conversion?" FontSize="17" FontWeight="SemiBold" />
+                            <TextBlock Text="This will stop the active batch safely." FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <TextBlock Text="Completed files will remain intact. No partially written output files will be kept." FontSize="13" Foreground="#E0E0E0" TextWrapping="Wrap" Margin="0,0,0,20" />
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <ui:Button Content="Continue Converting" Command="{Binding CloseCancelDialogCommand}" Height="36" Margin="0,0,10,0" />
+                        <ui:Button Appearance="Danger" Content="Yes, Cancel Batch" Command="{Binding ConfirmCancelBatchCommand}" Height="36" FontWeight="SemiBold" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- 3. FLUENT ITEM DETAILS / ERROR DIALOG -->
+        <Grid Grid.Row="0" Grid.RowSpan="3" Background="#88000000"
+              Visibility="{Binding IsDetailsDialogOpen, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <Border HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Width="520"
+                    Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1" CornerRadius="12" Padding="24">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                        <Border Width="38" Height="38" CornerRadius="19" Background="{DynamicResource AccentFillColorDefaultBrush}" Margin="0,0,12,0">
+                            <ui:SymbolIcon Symbol="Info24" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="File Details" FontSize="17" FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding DialogItemDetails.FileName}" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16">
+                        <StackPanel>
+                            <Grid Margin="0,0,0,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="100" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Status:" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Column="1" Text="{Binding DialogItemDetails.Status}" FontWeight="SemiBold" Foreground="{Binding DialogItemDetails.Status, Converter={StaticResource StatusToColorConverter}}" />
+                            </Grid>
+
+                            <Grid Margin="0,0,0,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="100" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Path:" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Column="1" Text="{Binding DialogItemDetails.InputPath}" TextWrapping="Wrap" FontSize="11" />
+                            </Grid>
+
+                            <Grid Margin="0,0,0,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="100" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Output:" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Grid.Column="1" Text="{Binding DialogItemDetails.OutputPath}" TextWrapping="Wrap" FontSize="11" />
+                            </Grid>
+
+                            <StackPanel Margin="0,6,0,0" Visibility="{Binding DialogItemDetails.ErrorMessage, Converter={StaticResource NullOrEmptyToVisibilityConverter}}">
+                                <TextBlock Text="Details / Message:" Foreground="#D88300" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                <TextBox Text="{Binding DialogItemDetails.ErrorMessage, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" Height="70" VerticalScrollBarVisibility="Auto" Background="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <ui:Button HorizontalAlignment="Right" Content="Close" Command="{Binding CloseDetailsDialogCommand}" Height="34" Width="80" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- 4. FLUENT NOTIFICATION / ALERT DIALOG -->
+        <Grid Grid.Row="0" Grid.RowSpan="3" Background="#88000000"
+              Visibility="{Binding IsNotificationDialogOpen, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <Border HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Width="420"
+                    Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1" CornerRadius="12" Padding="24">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                        <Border Width="38" Height="38" CornerRadius="19" Background="{DynamicResource AccentFillColorDefaultBrush}" Margin="0,0,12,0">
+                            <ui:SymbolIcon Symbol="Alert24" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="{Binding NotificationTitle}" FontSize="17" FontWeight="SemiBold" />
+                            <TextBlock Text="Fileo" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <TextBlock Text="{Binding NotificationMessage}" FontSize="13" TextWrapping="Wrap" Margin="0,0,0,20" />
+
+                    <ui:Button HorizontalAlignment="Right" Appearance="Primary" Content="OK" Command="{Binding CloseNotificationDialogCommand}" Height="34" Width="80" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+    </Grid>
+</ui:FluentWindow>

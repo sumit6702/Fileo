@@ -1,0 +1,25 @@
+<Application x:Class="ImageBatchConverter.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:conv="clr-namespace:ImageBatchConverter.Converters">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ui:ThemesDictionary Theme="Dark" />
+                <ui:ControlsDictionary />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- Converters -->
+            <conv:FileSizeConverter x:Key="FileSizeConverter" />
+            <conv:PercentageConverter x:Key="PercentageConverter" />
+            <conv:StatusToColorConverter x:Key="StatusToColorConverter" />
+            <conv:StatusToIconConverter x:Key="StatusToIconConverter" />
+            <conv:EqualityToVisibilityConverter x:Key="EqualityToVisibilityConverter" />
+            <conv:InvertedBooleanToVisibilityConverter x:Key="InvertedBooleanToVisibilityConverter" />
+            <conv:NullOrEmptyToVisibilityConverter x:Key="NullOrEmptyToVisibilityConverter" />
+            <conv:SpaceSavingsColorConverter x:Key="SpaceSavingsColorConverter" />
+            <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
