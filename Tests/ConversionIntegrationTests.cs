@@ -293,34 +293,4 @@ public class ConversionIntegrationTests
         Assert.IsTrue(settings.SaveInSameFolder);
         Assert.IsFalse(settings.SaveInSeparateFolder);
     }
-
-    [TestMethod]
-    public void GenerateAppIcon_FromUploadedImage()
-    {
-        string inputPng = Path.Combine(Directory.GetCurrentDirectory(), "Assets", "app_icon.png");
-        if (!File.Exists(inputPng))
-        {
-            inputPng = @"c:\Users\PC\.gemini\antigravity\scratch\Fileo\Assets\app_icon.png";
-        }
-
-        Assert.IsTrue(File.Exists(inputPng), "Source icon PNG must exist.");
-
-        string outIco = @"c:\Users\PC\.gemini\antigravity\scratch\Fileo\Assets\app.ico";
-
-        using var collection = new MagickImageCollection();
-        int[] sizes = new[] { 16, 24, 32, 48, 64, 128, 256 };
-
-        foreach (var size in sizes)
-        {
-            var layer = new MagickImage(inputPng);
-            layer.FilterType = FilterType.Lanczos;
-            layer.Resize((uint)size, (uint)size);
-            layer.Format = MagickFormat.Ico;
-            collection.Add(layer);
-        }
-
-        collection.Write(outIco, MagickFormat.Ico);
-        Assert.IsTrue(File.Exists(outIco));
-        Assert.IsTrue(new FileInfo(outIco).Length > 0);
-    }
 }
