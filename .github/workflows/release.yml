@@ -44,13 +44,15 @@ jobs:
         run: |
           dotnet publish Fileo.csproj -c Release -r win-x64 --self-contained false -p:Version=${{ steps.get_version.outputs.VERSION }} -o publish
 
-      - name: Setup Inno Setup
-        uses: automattic/action-inno-setup@v1
+      - name: Install Inno Setup
+        run: |
+          choco install innosetup --yes --no-progress
+          echo "C:\Program Files (x86)\Inno Setup 6" >> $env:GITHUB_PATH
 
       - name: Compile Inno Setup Installer
         shell: pwsh
         run: |
-          ISCC.exe /DMyAppVersion=${{ steps.get_version.outputs.VERSION }} installer\fileo_setup.iss
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DMyAppVersion=${{ steps.get_version.outputs.VERSION }} installer\fileo_setup.iss
 
       - name: Generate SHA-256 Checksum
         shell: pwsh
